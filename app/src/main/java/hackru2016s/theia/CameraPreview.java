@@ -11,6 +11,7 @@ import java.io.IOException;
 public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback {
 
     private Camera camera;
+    private boolean cameraReady;
 
     @SuppressWarnings("deprecation")
     public CameraPreview(Context context) {
@@ -19,6 +20,8 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         final SurfaceHolder surfaceHolder = this.getHolder();
         surfaceHolder.addCallback(this);
         surfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+
+        cameraReady = false;
     }
 
     @Override
@@ -31,6 +34,8 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         } catch (IOException e) {
             this.releaseCamera();
         }
+
+        cameraReady = true;
     }
 
     @Override
@@ -59,5 +64,9 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
     public Camera getCamera() {
         return camera;
+    }
+
+    public boolean isReady() {
+        return cameraReady;
     }
 }

@@ -1,9 +1,13 @@
 package hackru2016s.theia;
 
 import android.app.Activity;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.hardware.Camera;
+import android.hardware.SensorManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.StrictMode;
 import android.speech.tts.TextToSpeech;
 import android.util.Log;
@@ -18,6 +22,7 @@ import com.clarifai.api.RecognitionRequest;
 import com.clarifai.api.RecognitionResult;
 import com.clarifai.api.Tag;
 
+import java.io.ByteArrayOutputStream;
 import java.util.List;
 import java.util.Locale;
 
@@ -25,12 +30,17 @@ import java.util.Locale;
 public class MainActivity extends Activity {
 
     private static final String TAG = MainActivity.class.getSimpleName();
+    private static final int SNAPSHOT_DELAY = 5000;
 
     private CameraPreview cameraView;
+    private byte[] lastImage;
+    private float[] lastOrientation;
     private TextToSpeech tts;
     private ClarifaiClient clarifai;
-    private TextView caption;
-    private boolean isTapped;
+    private boolean currentlyTakingPicture;
+    private boolean manualActivation;
+    private Handler checkImageHandler;
+    private Runnable checkImageRunnable;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -44,12 +54,12 @@ public class MainActivity extends Activity {
 
         // Initiate CameraView
         cameraView = new CameraPreview(this);
+        lastImage = null;
+        lastOrientation = null;
+        manualActivation = false;
 
         FrameLayout preview = (FrameLayout) findViewById(R.id.camera_preview);
         preview.addView(cameraView);
-
-        // Caption textview
-        caption = (TextView) findViewById(R.id.caption_text);
 
         // Initialize Text To Speech
         tts = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
@@ -69,12 +79,30 @@ public class MainActivity extends Activity {
         // Keep screen on
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        isTapped = false;
+        currentlyTakingPicture = false;
+
+        checkImageHandler = new Handler();
+        checkImageRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (cameraView.isReady()) {
+                    if (tts != null && !tts.isSpeaking()) {
+                        manualActivation = false;
+                        takePicture();
+                    }
+                }
+
+                checkImageHandler.postDelayed(this, SNAPSHOT_DELAY);
+            }
+        };
+
+        checkImageHandler.post(checkImageRunnable);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+
         if (cameraView == null) {
             // Initiate CameraView
             cameraView = new CameraPreview(this);
@@ -101,6 +129,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
+
         if (cameraView != null) {
             cameraView.releaseCamera();
             cameraView = null;
@@ -112,11 +141,15 @@ public class MainActivity extends Activity {
             tts.shutdown();
             tts = null;
         }
+
+        checkImageHandler.removeCallbacks(checkImageRunnable);
     }
 
     // On tap, take the picture
     public boolean onKeyDown(int keycode, KeyEvent event) {
         if (keycode == KeyEvent.KEYCODE_DPAD_CENTER) {
+            manualActivation = true;
+            checkImageHandler.removeCallbacks(checkImageRunnable);
             takePicture();
             return true;
         }
@@ -125,10 +158,11 @@ public class MainActivity extends Activity {
 
     // Say the sentence out loud
     private void textToSpeech(String toSpeak) {
-        if (tts != null) {
+        if (manualActivation ||
+                (tts != null && !toSpeak.equals(""))) {
             tts.speak(toSpeak, TextToSpeech.QUEUE_FLUSH, null);
+            Log.d("TTS", "Speech successfully ran");
         }
-        Log.d("TTS", "Speech successfully ran");
     }
 
     // Create the sentence from the Tags
@@ -168,27 +202,66 @@ public class MainActivity extends Activity {
 
     // Call Clarifai API to recognize the image
     private String recognizeImage(byte[] image) {
-        List<RecognitionResult> results;
-        results = clarifai.recognize(new RecognitionRequest(image));
-        return createSentence(results.get(0).getTags());
+        if (manualActivation || lastImage == null) {
+            if (calcImageDiff(lastImage, image) > 50 ||
+                    calcRotationChange(lastOrientation, getCurrentOrientation()) > 20) {
+                List<RecognitionResult> results;
+
+                lastImage = image;
+                results = clarifai.recognize(new RecognitionRequest(image));
+                return createSentence(results.get(0).getTags());
+            }
+        }
+
+        return "";
+    }
+
+    private int calcImageDiff(byte[] image1, byte[] image2) {
+        Bitmap bitmap1, bitmap2;
+
+        bitmap1 = BitmapFactory.decodeByteArray(image1, 0, image1.length);
+        bitmap2 = BitmapFactory.decodeByteArray(image2, 0, image2.length);
+
+        // TODO
+
+        return 100;
+    }
+
+    private float[] getCurrentOrientation() {
+        // TODO
+
+        return null;
+    }
+
+    private int calcRotationChange(float[] orientation1, float[] orientation2) {
+        // TODO
+
+        return 100;
     }
 
     private void takePicture() {
-        if (!isTapped) {
-            isTapped = true;
-
+        if (!currentlyTakingPicture) {
+            currentlyTakingPicture = true;
             // Create callback that is called when image has been captured
             Camera.PictureCallback mPicture = new Camera.PictureCallback() {
                 @Override
                 public void onPictureTaken(byte[] data, Camera camera) {
+                    ByteArrayOutputStream compressedStream = new ByteArrayOutputStream();
+                    BitmapFactory.decodeByteArray(data, 0, data.length)
+                            .compress(Bitmap.CompressFormat.JPEG, 50, compressedStream);
+
                     cameraView.getCamera().startPreview();
-                    new RecognizeImageTask().execute(data);
+                    currentlyTakingPicture = false;
+
+                    new RecognizeImageTask().execute(compressedStream.toByteArray());
                     Log.d(TAG, "Picture taken");
                 }
             };
 
             // Take a picture and start preview again
-            cameraView.getCamera().takePicture(null, null, mPicture);
+            if (cameraView.isReady()) {
+                cameraView.getCamera().takePicture(null, null, mPicture);
+            }
         }
     }
 
@@ -199,9 +272,15 @@ public class MainActivity extends Activity {
 
         protected void onPostExecute(String captionText) {
             Log.d("Recognize Image: ", "Ran successfully");
-            caption.setText(captionText);
-            caption.setVisibility(View.VISIBLE);
-            isTapped = false;
+            if (!captionText.equals("")) {
+                TextView caption = (TextView) findViewById(R.id.caption_text);
+                caption.setText(captionText);
+                caption.setVisibility(View.VISIBLE);
+            }
+
+            if (manualActivation) {
+                checkImageHandler.post(checkImageRunnable);
+            }
         }
     }
 }
