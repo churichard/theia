@@ -10,20 +10,19 @@ import android.view.KeyEvent;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 
-import java.util.List;
-
 import com.clarifai.api.ClarifaiClient;
 import com.clarifai.api.RecognitionRequest;
 import com.clarifai.api.RecognitionResult;
-import com.clarifai.api.RecognitionResult.StatusCode;
 import com.clarifai.api.Tag;
 
+import java.util.List;
 import java.util.Locale;
 
 
 public class MainActivity extends Activity{
 
     private static final String TAG = MainActivity.class.getSimpleName();
+
     private CameraPreview cameraView;
     private TextToSpeech tts;
     private ClarifaiClient clarifai;
@@ -38,15 +37,13 @@ public class MainActivity extends Activity{
         // Set the view
         this.setContentView(R.layout.camera_preview);
 
-        // Construct Clarifai Client
-        clarifai = new ClarifaiClient(getString(R.string.CLARIFAI_APP_ID), getString(R.string.CLARIFAI_APP_SECRET));
-
         // Initiate CameraView
         cameraView = new CameraPreview(this);
 
         FrameLayout preview = (FrameLayout) findViewById(R.id.camera_preview);
         preview.addView(cameraView);
-        //Initialize Text To Speech
+
+        // Initialize Text To Speech
         tts = new TextToSpeech(this, new TextToSpeech.OnInitListener(){
             public void onInit(int status){
                 if(status == TextToSpeech.SUCCESS){
@@ -59,6 +56,9 @@ public class MainActivity extends Activity{
             }
         });
 
+        // Construct Clarifai Client
+        clarifai = new ClarifaiClient(getString(R.string.CLARIFAI_APP_ID), getString(R.string.CLARIFAI_APP_SECRET));
+
         // Keep screen on
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
@@ -66,8 +66,27 @@ public class MainActivity extends Activity{
     @Override
     protected void onResume() {
         super.onResume();
-        if (cameraView != null) {
-            cameraView.releaseCamera();
+        if (cameraView == null) {
+            // Initiate CameraView
+            cameraView = new CameraPreview(this);
+
+            FrameLayout preview = (FrameLayout) findViewById(R.id.camera_preview);
+            preview.addView(cameraView);
+        }
+
+        if (tts == null) {
+            // Initialize Text To Speech
+            tts = new TextToSpeech(this, new TextToSpeech.OnInitListener(){
+                public void onInit(int status){
+                    if(status == TextToSpeech.SUCCESS){
+                        tts.setLanguage(Locale.US);
+                        Log.d("TTS: ", "Started Successfully");
+                    }
+                    else{
+                        Log.d("TTS: ", "Failed running");
+                    }
+                }
+            });
         }
     }
 
@@ -76,12 +95,14 @@ public class MainActivity extends Activity{
         super.onPause();
         if (cameraView != null) {
             cameraView.releaseCamera();
+            cameraView = null;
         }
 
         // Do not hold text to speech during onPause
-        if(tts != null){
+        if (tts != null) {
             tts.stop();
             tts.shutdown();
+            tts = null;
         }
     }
 
@@ -104,7 +125,9 @@ public class MainActivity extends Activity{
     private void createSentence(List<Tag> tags){
         String sentence = "Looks like ";
         int count = 0;
-        for(Tag tag : tags){
+        for (Tag tag : tags){
+            if (tag.getName().equalsIgnoreCase("no person")) continue;
+
             if (tag.getProbability() > 0.98 && count < 3) {
                 sentence += tag.getName() + " or ";
                 count++;
@@ -135,7 +158,7 @@ public class MainActivity extends Activity{
         List<RecognitionResult> results;
         results = clarifai.recognize(new RecognitionRequest(image));
         createSentence(results.get(0).getTags());
-        Log.d("Recognize Image: ", "Ran sucessfully");
+        Log.d("Recognize Image: ", "Ran successfully");
     }
 
     private void takePicture() {
