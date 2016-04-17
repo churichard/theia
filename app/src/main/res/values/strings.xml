@@ -1,5 +1,4 @@
 <resources>
     <string name="app_name">Theia</string>
     <string name="title_activity_main">Theia</string>
-    <string name="hello_world">Hello world!</string>
 </resources>
