@@ -71,13 +71,13 @@ h1 {
   text-transform: uppercase;
   letter-spacing: 4px;
   font-weight: normal;
-  font-size: 5em;
+  font-size: 3em;
 }
 
 p {
   line-height: 1.6em;
   text-align: center;
-  font-size: 2em;
+  font-size: 1.25em;
 }
 
 p + p {
@@ -105,7 +105,7 @@ a:hover {
 
 .logo {
   margin-bottom: 10px;
-  width: 400px;
+  width: 300px;
 }
 
 .container {
@@ -151,19 +151,20 @@ a:hover {
 	font-size: 1.75em;
 }
 
-@media(min-width:2000px){
+@media(max-width: 1921px){
 	.logo{
-		width: 300px;
+		width:400px
 	}
 	h1{
-		font-size: 3em;
+		font-size: 4em;
 	}
 	p{
-		font-size: 1.5em;
+		font-size: 2em;
 	}
+
 }
 
-@media (max-width: 1367px){
+@media(max-width: 1367px){
 	h1,
 	h2,
 	h3 {
