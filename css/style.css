@@ -147,8 +147,8 @@ a:hover {
 }
 
 .btn{
-	min-width: 200px;
-	font-size: 1.75em;
+	min-width: 100px;
+	font-size: 1.35em;
 }
 
 @media(min-width: 1800px){
@@ -160,6 +160,10 @@ a:hover {
 	}
 	p{
 		font-size: 2em;
+	}
+	.btn{
+		min-width: 200px;
+		font-size: 1.75em;
 	}
 
 }
