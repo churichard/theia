@@ -151,7 +151,7 @@ a:hover {
 	font-size: 1.75em;
 }
 
-@media(max-width: 1921px){
+@media(min-width: 1800px){
 	.logo{
 		width:400px
 	}
