@@ -30,6 +30,7 @@ public class MainActivity extends Activity {
     private TextToSpeech tts;
     private ClarifaiClient clarifai;
     private TextView caption;
+    private boolean isTapped;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -47,6 +48,9 @@ public class MainActivity extends Activity {
         FrameLayout preview = (FrameLayout) findViewById(R.id.camera_preview);
         preview.addView(cameraView);
 
+        // Caption textview
+        caption = (TextView) findViewById(R.id.caption_text);
+
         // Initialize Text To Speech
         tts = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
             public void onInit(int status) {
@@ -62,11 +66,10 @@ public class MainActivity extends Activity {
         // Construct Clarifai Client
         clarifai = new ClarifaiClient(getString(R.string.CLARIFAI_APP_ID), getString(R.string.CLARIFAI_APP_SECRET));
 
-        // Caption textview
-        caption = (TextView) findViewById(R.id.caption_text);
-
         // Keep screen on
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+        isTapped = false;
     }
 
     @Override
@@ -171,19 +174,22 @@ public class MainActivity extends Activity {
     }
 
     private void takePicture() {
-        // Create callback that is called when image has been captured
-        Camera.PictureCallback mPicture = new Camera.PictureCallback() {
-            @Override
-            public void onPictureTaken(byte[] data, Camera camera) {
-                cameraView.getCamera().startPreview(); // TODO I moved this
-                new RecognizeImageTask().execute(data);
-//                recognizeImage(data);
-                Log.d(TAG, "Picture taken");
-            }
-        };
+        if (!isTapped) {
+            isTapped = true;
 
-        // Take a picture and start preview again
-        cameraView.getCamera().takePicture(null, null, mPicture);
+            // Create callback that is called when image has been captured
+            Camera.PictureCallback mPicture = new Camera.PictureCallback() {
+                @Override
+                public void onPictureTaken(byte[] data, Camera camera) {
+                    cameraView.getCamera().startPreview();
+                    new RecognizeImageTask().execute(data);
+                    Log.d(TAG, "Picture taken");
+                }
+            };
+
+            // Take a picture and start preview again
+            cameraView.getCamera().takePicture(null, null, mPicture);
+        }
     }
 
     private class RecognizeImageTask extends AsyncTask<byte[], Void, String> {
@@ -195,6 +201,7 @@ public class MainActivity extends Activity {
             Log.d("Recognize Image: ", "Ran successfully");
             caption.setText(captionText);
             caption.setVisibility(View.VISIBLE);
+            isTapped = false;
         }
     }
 }
