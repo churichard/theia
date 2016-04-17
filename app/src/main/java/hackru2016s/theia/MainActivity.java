@@ -3,6 +3,7 @@ package hackru2016s.theia;
 import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.hardware.Camera;
 import android.hardware.SensorManager;
 import android.os.AsyncTask;
@@ -30,7 +31,9 @@ import java.util.Locale;
 public class MainActivity extends Activity {
 
     private static final String TAG = MainActivity.class.getSimpleName();
-    private static final int SNAPSHOT_DELAY = 5000;
+    private static final int SNAPSHOT_DELAY = 3500;
+    private static final int NUM_BUCKETS = 4;
+    private static final int DIFF_THRESHOLD = 50000;
 
     private CameraPreview cameraView;
     private byte[] lastImage;
@@ -202,41 +205,114 @@ public class MainActivity extends Activity {
 
     // Call Clarifai API to recognize the image
     private String recognizeImage(byte[] image) {
-        if (manualActivation || lastImage == null) {
-            if (calcImageDiff(lastImage, image) > 50 ||
-                    calcRotationChange(lastOrientation, getCurrentOrientation()) > 20) {
-                List<RecognitionResult> results;
+        if (manualActivation || lastImage == null
+                || calcImageDiff(lastImage, image) < DIFF_THRESHOLD) {
+            List<RecognitionResult> results;
 
-                lastImage = image;
-                results = clarifai.recognize(new RecognitionRequest(image));
-                return createSentence(results.get(0).getTags());
-            }
+            lastImage = image;
+            results = clarifai.recognize(new RecognitionRequest(image));
+            return createSentence(results.get(0).getTags());
         }
 
         return "";
     }
 
-    private int calcImageDiff(byte[] image1, byte[] image2) {
-        Bitmap bitmap1, bitmap2;
+    private float calcImageDiff(byte[] image1, byte[] image2) {
+        Bitmap bitmap1 = BitmapFactory.decodeByteArray(image1, 0, image1.length),
+                bitmap2 = BitmapFactory.decodeByteArray(image2, 0, image2.length);
+        int width = bitmap1.getWidth(), height = bitmap1.getHeight();
+        int[] pixels1 = new int[width * height], pixels2 = new int[width * height];
+        int[] redBuckets1 = new int[NUM_BUCKETS], redBuckets2 = new int[NUM_BUCKETS],
+                greenBuckets1 = new int[NUM_BUCKETS], greenBuckets2 = new int[NUM_BUCKETS],
+                blueBuckets1 = new int[NUM_BUCKETS], blueBuckets2 = new int[NUM_BUCKETS];
+        long sum = 0;
 
-        bitmap1 = BitmapFactory.decodeByteArray(image1, 0, image1.length);
-        bitmap2 = BitmapFactory.decodeByteArray(image2, 0, image2.length);
+        // Get all pixel data
+        bitmap1.getPixels(pixels1, 0, width, 0, 0, width, height);
+        bitmap2.getPixels(pixels2, 0, width, 0, 0, width, height);
 
-        // TODO
+        // Put pixels into buckets
+        for (int i = 0; i < width * height; i += 10) {
+            int red1 = Color.red(pixels1[i]), red2 = Color.red(pixels2[i]),
+                    green1 = Color.green(pixels1[i]), green2 = Color.green(pixels2[i]),
+                    blue1 = Color.blue(pixels1[i]), blue2 = Color.blue(pixels2[i]);
 
-        return 100;
-    }
+            // Bitmap 1 red histogram
+            if (red1 >= 0 && red1 < 64) {
+                redBuckets1[0]++;
+            } else if (red1 >= 64 && red1 < 128) {
+                redBuckets1[1]++;
+            } else if (red1 >= 128 && red1 < 192) {
+                redBuckets1[2]++;
+            } else if (red1 >= 192 && red1 < 256) {
+                redBuckets1[3]++;
+            }
 
-    private float[] getCurrentOrientation() {
-        // TODO
+            // Bitmap 1 green histogram
+            if (green1 >= 0 && green1 < 64) {
+                greenBuckets1[0]++;
+            } else if (green1 >= 64 && green1 < 128) {
+                greenBuckets1[1]++;
+            } else if (green1 >= 128 && green1 < 192) {
+                greenBuckets1[2]++;
+            } else if (green1 >= 192 && green1 < 256) {
+                greenBuckets1[3]++;
+            }
 
-        return null;
-    }
+            // Bitmap 1 blue histogram
+            if (blue1 >= 0 && blue1 < 64) {
+                blueBuckets1[0]++;
+            } else if (blue1 >= 64 && blue1 < 128) {
+                blueBuckets1[1]++;
+            } else if (blue1 >= 128 && blue1 < 192) {
+                blueBuckets1[2]++;
+            } else if (blue1 >= 192 && blue1 < 256) {
+                blueBuckets1[3]++;
+            }
 
-    private int calcRotationChange(float[] orientation1, float[] orientation2) {
-        // TODO
+            // Bitmap 2 red histogram
+            if (red2 >= 0 && red2 < 64) {
+                redBuckets2[0]++;
+            } else if (red2 >= 64 && red2 < 128) {
+                redBuckets2[1]++;
+            } else if (red2 >= 128 && red2 < 192) {
+                redBuckets2[2]++;
+            } else if (red2 >= 192 && red2 < 256) {
+                redBuckets2[3]++;
+            }
 
-        return 100;
+            // Bitmap 2 green histogram
+            if (green2 >= 0 && green2 < 64) {
+                greenBuckets2[0]++;
+            } else if (green2 >= 64 && green2 < 128) {
+                greenBuckets2[1]++;
+            } else if (green2 >= 128 && green2 < 192) {
+                greenBuckets2[2]++;
+            } else if (green2 >= 192 && green2 < 256) {
+                greenBuckets2[3]++;
+            }
+
+            // Bitmap 2 blue histogram
+            if (blue2 >= 0 && blue2 < 64) {
+                blueBuckets2[0]++;
+            } else if (blue2 >= 64 && blue2 < 128) {
+                blueBuckets2[1]++;
+            } else if (blue2 >= 128 && blue2 < 192) {
+                blueBuckets2[2]++;
+            } else if (blue2 >= 192 && blue2 < 256) {
+                blueBuckets2[3]++;
+            }
+        }
+
+        // Sum up differences in buckets
+        for (int i = 0; i < NUM_BUCKETS; i++) {
+            sum += Math.abs(redBuckets1[i] - redBuckets2[i])
+                    + Math.abs(greenBuckets1[i] - greenBuckets2[i])
+                    + Math.abs(blueBuckets1[i] - blueBuckets2[i]);
+        }
+
+        Log.d("ImageDiff", " = " + sum);
+        return sum;
     }
 
     private void takePicture() {
