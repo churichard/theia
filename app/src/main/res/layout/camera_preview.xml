@@ -17,5 +17,6 @@
         android:layout_marginBottom="5dp"
         android:background="#212121"
         android:padding="3dp"
-        android:textColor="#FAFAFA" />
+        android:textColor="#FAFAFA"
+        android:visibility="invisible" />
 </RelativeLayout>

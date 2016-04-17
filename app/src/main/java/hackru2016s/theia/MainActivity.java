@@ -2,11 +2,13 @@ package hackru2016s.theia;
 
 import android.app.Activity;
 import android.hardware.Camera;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.StrictMode;
 import android.speech.tts.TextToSpeech;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.View;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.TextView;
@@ -20,7 +22,7 @@ import java.util.List;
 import java.util.Locale;
 
 
-public class MainActivity extends Activity{
+public class MainActivity extends Activity {
 
     private static final String TAG = MainActivity.class.getSimpleName();
 
@@ -46,13 +48,12 @@ public class MainActivity extends Activity{
         preview.addView(cameraView);
 
         // Initialize Text To Speech
-        tts = new TextToSpeech(this, new TextToSpeech.OnInitListener(){
-            public void onInit(int status){
-                if(status == TextToSpeech.SUCCESS){
+        tts = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
+            public void onInit(int status) {
+                if (status == TextToSpeech.SUCCESS) {
                     tts.setLanguage(Locale.US);
                     Log.d("TTS: ", "Started Successfully");
-                }
-                else{
+                } else {
                     Log.d("TTS: ", "Failed running");
                 }
             }
@@ -81,13 +82,12 @@ public class MainActivity extends Activity{
 
         if (tts == null) {
             // Initialize Text To Speech
-            tts = new TextToSpeech(this, new TextToSpeech.OnInitListener(){
-                public void onInit(int status){
-                    if(status == TextToSpeech.SUCCESS){
+            tts = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
+                public void onInit(int status) {
+                    if (status == TextToSpeech.SUCCESS) {
                         tts.setLanguage(Locale.US);
                         Log.d("TTS: ", "Started Successfully");
-                    }
-                    else{
+                    } else {
                         Log.d("TTS: ", "Failed running");
                     }
                 }
@@ -112,8 +112,8 @@ public class MainActivity extends Activity{
     }
 
     // On tap, take the picture
-    public boolean onKeyDown(int keycode, KeyEvent event){
-        if(keycode == KeyEvent.KEYCODE_DPAD_CENTER){
+    public boolean onKeyDown(int keycode, KeyEvent event) {
+        if (keycode == KeyEvent.KEYCODE_DPAD_CENTER) {
             takePicture();
             return true;
         }
@@ -121,55 +121,53 @@ public class MainActivity extends Activity{
     }
 
     // Say the sentence out loud
-    private void textToSpeech(String toSpeak){
-        tts.speak(toSpeak, TextToSpeech.QUEUE_FLUSH, null);
+    private void textToSpeech(String toSpeak) {
+        if (tts != null) {
+            tts.speak(toSpeak, TextToSpeech.QUEUE_FLUSH, null);
+        }
         Log.d("TTS", "Speech successfully ran");
     }
 
     // Create the sentence from the Tags
-    private void createSentence(List<Tag> tags){
+    private String createSentence(List<Tag> tags) {
         String sentence = "Looks like ";
         String captionTags = "";
         int count = 0;
-        for (Tag tag : tags){
+        for (Tag tag : tags) {
             if (tag.getName().equalsIgnoreCase("no person")) continue;
 
             if (tag.getProbability() > 0.98 && count < 3) {
                 sentence += tag.getName() + " or ";
                 captionTags += tag.getName() + ", ";
                 count++;
-            }
-            else if (tag.getProbability() > 0.90 && count < 3) {
+            } else if (tag.getProbability() > 0.90 && count < 3) {
                 sentence += "probably " + tag.getName() + " or ";
                 captionTags += tag.getName() + ", ";
                 count++;
-            }
-            else if (tag.getProbability() > 0.70 && count < 3) {
+            } else if (tag.getProbability() > 0.70 && count < 3) {
                 sentence += "maybe " + tag.getName() + " or ";
                 captionTags += tag.getName() + ", ";
                 count++;
-            }
-            else if (tag.getProbability() > 0.50 && count < 3) {
+            } else if (tag.getProbability() > 0.50 && count < 3) {
                 sentence += "perhaps " + tag.getName() + " or ";
                 captionTags += tag.getName() + ", ";
                 count++;
             }
         }
-        if (count == 0){
+        if (count == 0) {
             sentence = "I'm not quite sure what you're looking at.     ";
         }
-        sentence = sentence.substring(0,sentence.length()-4);
+        sentence = sentence.substring(0, sentence.length() - 4);
         Log.d("Sentence: ", sentence);
-        caption.setText(captionTags.substring(0, captionTags.length()-2));
         textToSpeech(sentence);
+        return captionTags.substring(0, captionTags.length() - 2);
     }
 
     // Call Clarifai API to recognize the image
-    private void recognizeImage(byte[] image){
+    private String recognizeImage(byte[] image) {
         List<RecognitionResult> results;
         results = clarifai.recognize(new RecognitionRequest(image));
-        createSentence(results.get(0).getTags());
-        Log.d("Recognize Image: ", "Ran successfully");
+        return createSentence(results.get(0).getTags());
     }
 
     private void takePicture() {
@@ -177,13 +175,26 @@ public class MainActivity extends Activity{
         Camera.PictureCallback mPicture = new Camera.PictureCallback() {
             @Override
             public void onPictureTaken(byte[] data, Camera camera) {
-                recognizeImage(data);
+                cameraView.getCamera().startPreview(); // TODO I moved this
+                new RecognizeImageTask().execute(data);
+//                recognizeImage(data);
                 Log.d(TAG, "Picture taken");
-                cameraView.getCamera().startPreview();
             }
         };
 
         // Take a picture and start preview again
         cameraView.getCamera().takePicture(null, null, mPicture);
+    }
+
+    private class RecognizeImageTask extends AsyncTask<byte[], Void, String> {
+        protected String doInBackground(byte[]... images) {
+            return recognizeImage(images[0]);
+        }
+
+        protected void onPostExecute(String captionText) {
+            Log.d("Recognize Image: ", "Ran successfully");
+            caption.setText(captionText);
+            caption.setVisibility(View.VISIBLE);
+        }
     }
 }
