@@ -1,11 +1,59 @@
 <!DOCTYPE html>
-<html>
-<head>
-	<title>Theia</title>
-</head>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="author" content="James Paik, Richard Chu, Daven Wu"/>
+		<meta name="description" content="Theia is a Google Glass app that helps visually impaired people know what is around them."/>
+		<meta name="keywords" content="Theia, HackRU, Visually Impaired, Blind, Google Glass"/>
+		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+		<meta property="og:image" content="http://churichard.me/images/theia.png"/>
+		<meta property="og:description" content="Theia is a Google Glass app that helps visually impaired people know what is around them."/>
+		<meta property="og:title" content="Theia"/>
+		<meta property="og:url" content="http://churichard.me/theia">
 
-<body>
-	<h1>Theia</h1>
-	<p>A Google Glass app that helps visually impaired people know what is around them.</p>
-</body>
+		<title>Theia</title>
+		<link rel="icon" href="images/favicon.png">
+
+		<link href="css/bootstrap.min.css" rel="stylesheet">
+		<link href="css/font-awesome.min.css" rel="stylesheet">
+		<link href="css/style.css" rel="stylesheet">
+		<link href='//fonts.googleapis.com/css?family=Open+Sans:100,300,400,600,700' rel='stylesheet' type='text/css'>
+
+		<!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+		<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+		<!--[if lt IE 9]>
+		<script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+		<script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+		<![endif]-->
+	</head>
+
+	<body>
+		<div id="container" class="container">
+			<div id="output" class="container"></div>
+			<div id="vignette" class="overlay vignette"></div>
+      <div id="noise" class="overlay noise"></div>
+			<div id="ui" class="wrapper">
+        <header id="header" class="header">
+          <img class="logo" src="images/theia.png">
+          <h1>Theia</h1>
+        </header>
+        <article id="information" class="information">
+					<br>
+					<p>
+						Theia is a Google Glass app that helps visually impaired people see what is in their environment. It captures a live stream of whatever the user is looking at, and it automatically dictates what objects are in the environment using natural language.
+					</p>
+					<br>
+					<a href="https://github.com/churichard/theia" target="_blank" class="btn btn-default"><i class="fa fa-github" aria-hidden="true"></i> &nbsp;GitHub</a>
+				</article>
+        <footer id="footer" class="footer">
+					Created by Richard Chu, Daven Wu, and James Paik
+        </footer>
+      </div>
+		</div>
+
+		<script src="js/jquery.min.js"></script>
+		<script src="js/bootstrap.min.js"></script>
+		<script src="js/fss.min.js"></script>
+		<script src="js/script.js"></script>
+	</body>
 </html>
