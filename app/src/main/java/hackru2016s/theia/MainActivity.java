@@ -3,6 +3,7 @@ package hackru2016s.theia;
 import android.app.Activity;
 import android.os.Bundle;
 import android.view.WindowManager;
+import android.widget.FrameLayout;
 
 
 public class MainActivity extends Activity {
@@ -15,11 +16,14 @@ public class MainActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // Set the view
+        this.setContentView(R.layout.camera_preview);
+
         // Initiate CameraView
         cameraView = new CameraPreview(this);
 
-        // Set the view
-        this.setContentView(cameraView);
+        FrameLayout preview = (FrameLayout) findViewById(R.id.camera_preview);
+        preview.addView(cameraView);
 
         // Keep screen on
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
