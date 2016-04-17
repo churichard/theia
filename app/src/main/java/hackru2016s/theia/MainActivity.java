@@ -9,6 +9,7 @@ import android.util.Log;
 import android.view.KeyEvent;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
+import android.widget.TextView;
 
 import com.clarifai.api.ClarifaiClient;
 import com.clarifai.api.RecognitionRequest;
@@ -26,6 +27,7 @@ public class MainActivity extends Activity{
     private CameraPreview cameraView;
     private TextToSpeech tts;
     private ClarifaiClient clarifai;
+    private TextView caption;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -58,6 +60,9 @@ public class MainActivity extends Activity{
 
         // Construct Clarifai Client
         clarifai = new ClarifaiClient(getString(R.string.CLARIFAI_APP_ID), getString(R.string.CLARIFAI_APP_SECRET));
+
+        // Caption textview
+        caption = (TextView) findViewById(R.id.caption_text);
 
         // Keep screen on
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -124,24 +129,29 @@ public class MainActivity extends Activity{
     // Create the sentence from the Tags
     private void createSentence(List<Tag> tags){
         String sentence = "Looks like ";
+        String captionTags = "";
         int count = 0;
         for (Tag tag : tags){
             if (tag.getName().equalsIgnoreCase("no person")) continue;
 
             if (tag.getProbability() > 0.98 && count < 3) {
                 sentence += tag.getName() + " or ";
+                captionTags += tag.getName() + ", ";
                 count++;
             }
             else if (tag.getProbability() > 0.90 && count < 3) {
                 sentence += "probably " + tag.getName() + " or ";
+                captionTags += tag.getName() + ", ";
                 count++;
             }
             else if (tag.getProbability() > 0.70 && count < 3) {
                 sentence += "maybe " + tag.getName() + " or ";
+                captionTags += tag.getName() + ", ";
                 count++;
             }
             else if (tag.getProbability() > 0.50 && count < 3) {
                 sentence += "perhaps " + tag.getName() + " or ";
+                captionTags += tag.getName() + ", ";
                 count++;
             }
         }
@@ -150,6 +160,7 @@ public class MainActivity extends Activity{
         }
         sentence = sentence.substring(0,sentence.length()-4);
         Log.d("Sentence: ", sentence);
+        caption.setText(captionTags.substring(0, captionTags.length()-2));
         textToSpeech(sentence);
     }
 
