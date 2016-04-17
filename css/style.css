@@ -151,6 +151,18 @@ a:hover {
 	font-size: 1.75em;
 }
 
+@media(min-width:2000px){
+	.logo{
+		width: 300px;
+	}
+	h1{
+		font-size: 3em;
+	}
+	p{
+		font-size: 1.5em;
+	}
+}
+
 @media (max-width: 1367px){
 	h1,
 	h2,
